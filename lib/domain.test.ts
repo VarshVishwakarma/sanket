@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyTransfer, calculateRisk, compareScenario, selectEligibleDonors, stock } from "./domain";
+import { applyTransfer, calculateRisk, compareScenario, selectEligibleDonors, stock, validateReportExtraction } from "./domain";
 
 describe("stock risk engine", () => {
   it("flags North Star vancomycin as critical at baseline", () => {
@@ -56,11 +56,47 @@ describe("transfer state", () => {
     expect(destination.onHand).toBe(86);
   });
 
+  it("rejects self transfers and invalid quantities", () => {
+    expect(() => applyTransfer(stock, {
+      sourceId: "n-vancomycin",
+      destinationId: "n-vancomycin",
+      quantity: 1,
+      medicine: "Vancomycin 500mg"
+    })).toThrow();
+    expect(() => applyTransfer(stock, {
+      sourceId: "r-vancomycin",
+      destinationId: "n-vancomycin",
+      quantity: 9999,
+      medicine: "Vancomycin 500mg"
+    })).toThrow();
+  });
+
   it("improves the destination before/after projection", () => {
     const item = stock.find((entry) => entry.id === "n-vancomycin")!;
     const baseline = compareScenario(item, { id: "baseline", label: "Baseline", horizonDays: 14, demandMultiplier: 1, description: "" });
     const after = compareScenario({ ...item, onHand: item.onHand + 120 }, { id: "baseline", label: "Baseline", horizonDays: 14, demandMultiplier: 1, description: "" });
     expect(after.daysCover).toBeGreaterThan(baseline.daysCover);
     expect(after.gap).toBeLessThan(baseline.gap);
+  });
+
+  describe("report extraction validation", () => {
+    it("accepts known IDs and rejects unknown model-generated IDs", () => {
+      expect(validateReportExtraction({
+        facilityId: "north-star",
+        medicineId: "n-vancomycin",
+        quantity: 86,
+        urgency: "critical",
+        summary: "Short cover",
+        confidence: "medium"
+      })?.facilityId).toBe("north-star");
+      expect(validateReportExtraction({
+        facilityId: "unknown-facility",
+        medicineId: "n-vancomycin",
+        quantity: 86,
+        urgency: "critical",
+        summary: "Short cover",
+        confidence: "medium"
+      })).toBeNull();
+    });
   });
 });

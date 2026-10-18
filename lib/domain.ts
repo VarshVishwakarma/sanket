@@ -65,6 +65,15 @@ export interface TransferDecision {
   medicine: string;
 }
 
+export interface ReportExtraction {
+  facilityId: string | null;
+  medicineId: string | null;
+  quantity: number | null;
+  urgency: RiskLevel | "needs-review";
+  summary: string;
+  confidence: "high" | "medium" | "low";
+}
+
 export const facilities: Facility[] = [
   { id: "north-star", name: "North Star Medical Center", shortName: "North Star", region: "North district", beds: 420, occupancy: 0.91, contact: "Dr. Asha Menon" },
   { id: "riverbend", name: "Riverbend Community Hospital", shortName: "Riverbend", region: "East district", beds: 260, occupancy: 0.77, contact: "Nikhil Rao, COO" },
@@ -92,19 +101,25 @@ export const scenarios: RehearsalScenario[] = [
 ];
 
 export const auditEvents: AuditEvent[] = [
-  { id: "a1", timestamp: "Today, 09:42", actor: "Sanket engine", action: "Risk recalculated", detail: "North Star • Vancomycin 500mg moved to critical", tone: "coral" },
-  { id: "a2", timestamp: "Today, 09:18", actor: "Dr. Asha Menon", action: "Rehearsal opened", detail: "Shortage response for North Star Medical Center", tone: "teal" },
-  { id: "a3", timestamp: "Today, 08:55", actor: "Inventory sync", action: "Stock updated", detail: "Riverbend • Normal saline +300 inbound", tone: "teal" },
-  { id: "a4", timestamp: "Yesterday, 17:30", actor: "Nikhil Rao", action: "Transfer approved", detail: "48 insulin pens from Green Valley to Riverbend", tone: "amber" }
+  { id: "a1", timestamp: "Demo snapshot", actor: "Synthetic demo", action: "Risk recalculated", detail: "North Star • Vancomycin 500mg moved to critical", tone: "coral" },
+  { id: "a2", timestamp: "Demo snapshot", actor: "Synthetic demo", action: "Rehearsal opened", detail: "Shortage response for North Star Medical Center", tone: "teal" },
+  { id: "a3", timestamp: "Demo snapshot", actor: "Synthetic demo", action: "Stock updated", detail: "Riverbend • Normal saline +300 inbound", tone: "teal" },
+  { id: "a4", timestamp: "Demo snapshot", actor: "Synthetic demo", action: "Transfer approved", detail: "48 insulin pens from Green Valley to Riverbend", tone: "amber" }
 ];
 
-export function calculateRisk(item: MedicineStock, demandMultiplier = 1, delayInbound = false): StockRisk {
-  const effectiveInbound = delayInbound ? 0 : item.inbound;
-  const available = item.onHand + effectiveInbound;
-  const daysCover = item.dailyUse * demandMultiplier > 0 ? available / (item.dailyUse * demandMultiplier) : 999;
-  const criticalHorizon = item.safetyDays + 3;
-  const gap = Math.max(0, Math.ceil((item.dailyUse * demandMultiplier * criticalHorizon) - item.onHand - effectiveInbound));
+export function calculateRisk(item: MedicineStock, demandMultiplier = 1, delayInbound = false, projectionDays?: number): StockRisk {
+  const safeDailyUse = Number.isFinite(item.dailyUse) && item.dailyUse > 0 ? item.dailyUse : 0;
+  const safeOnHand = Number.isFinite(item.onHand) && item.onHand >= 0 ? item.onHand : 0;
+  const safeInbound = Number.isFinite(item.inbound) && item.inbound >= 0 ? item.inbound : 0;
+  const safeSafetyDays = Number.isFinite(item.safetyDays) && item.safetyDays >= 0 ? item.safetyDays : 0;
+  const safeDemandMultiplier = Number.isFinite(demandMultiplier) && demandMultiplier > 0 ? demandMultiplier : 1;
+  const effectiveInbound = delayInbound ? 0 : safeInbound;
+  const available = safeOnHand + effectiveInbound;
+  const daysCover = safeDailyUse * safeDemandMultiplier > 0 ? available / (safeDailyUse * safeDemandMultiplier) : 999;
+  const criticalHorizon = safeSafetyDays + 3;
+  const targetDays = Math.max(criticalHorizon, projectionDays ?? 0);
   const risk: RiskLevel = daysCover <= criticalHorizon ? "critical" : daysCover <= criticalHorizon + 3 ? "watch" : "stable";
+  const gap = risk === "stable" ? 0 : Math.max(0, Math.ceil((safeDailyUse * safeDemandMultiplier * targetDays) - safeOnHand - effectiveInbound));
   const date = risk === "stable" ? null : new Date(Date.now() + Math.max(0, Math.floor(daysCover)) * 86400000).toISOString();
   return { ...item, daysCover, projectedShortageDate: date, risk, gap };
 }
@@ -142,7 +157,7 @@ export function selectEligibleDonors(shortage: StockRisk, demandMultiplier = 1, 
 }
 
 export function compareScenario(item: MedicineStock, scenario: RehearsalScenario): StockRisk {
-  return calculateRisk(item, scenario.demandMultiplier, scenario.id === "delay");
+  return calculateRisk(item, scenario.demandMultiplier, scenario.id === "delay", scenario.horizonDays);
 }
 
 export function applyTransfer(items: MedicineStock[], decision: TransferDecision): MedicineStock[] {
@@ -151,7 +166,7 @@ export function applyTransfer(items: MedicineStock[], decision: TransferDecision
   }
   const source = items.find((item) => item.id === decision.sourceId);
   const destination = items.find((item) => item.id === decision.destinationId);
-  if (!source || !destination || source.medicine !== destination.medicine || source.onHand < decision.quantity) {
+  if (!source || !destination || source.id === destination.id || source.medicine !== destination.medicine || source.onHand < decision.quantity) {
     throw new Error("Transfer is not valid for the current inventory.");
   }
   return items.map((item) => {
@@ -159,4 +174,27 @@ export function applyTransfer(items: MedicineStock[], decision: TransferDecision
     if (item.id === decision.destinationId) return { ...item, onHand: item.onHand + decision.quantity, updatedAt: "just now" };
     return item;
   });
+}
+
+export function validateReportExtraction(value: unknown): ReportExtraction | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const facilityId = candidate.facilityId;
+  const medicineId = candidate.medicineId;
+  const quantity = candidate.quantity;
+  const urgency = candidate.urgency;
+  const confidence = candidate.confidence;
+  if (
+    (facilityId !== null && typeof facilityId !== "string") ||
+    (medicineId !== null && typeof medicineId !== "string") ||
+    (quantity !== null && (!Number.isInteger(quantity) || (quantity as number) < 0 || (quantity as number) > 1_000_000)) ||
+    (urgency !== "critical" && urgency !== "watch" && urgency !== "stable" && urgency !== "needs-review") ||
+    (confidence !== "high" && confidence !== "medium" && confidence !== "low") ||
+    typeof candidate.summary !== "string"
+  ) return null;
+  const validFacility = facilityId === null || facilities.some((facility) => facility.id === facilityId);
+  const validMedicine = medicineId === null || stock.some((item) => item.id === medicineId);
+  const medicine = medicineId ? stock.find((item) => item.id === medicineId) : null;
+  if (!validFacility || !validMedicine || (facilityId && medicine && medicine.facilityId !== facilityId)) return null;
+  return { facilityId, medicineId, quantity: quantity as number | null, urgency, summary: candidate.summary, confidence };
 }

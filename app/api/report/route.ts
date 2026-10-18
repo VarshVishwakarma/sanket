@@ -1,44 +1,20 @@
 import { NextResponse } from "next/server";
+import { facilities, stock, validateReportExtraction, type ReportExtraction } from "@/lib/domain";
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
-
-type ExtractedReport = {
-  facility: string | null;
-  medicine: string | null;
-  urgency: "critical" | "watch" | "stable" | "needs-review";
-  summary: string;
-};
-
-function parseExtractedReport(value: unknown): ExtractedReport | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Record<string, unknown>;
-  const urgency = candidate.urgency;
-  if (
-    (candidate.facility !== null && typeof candidate.facility !== "string") ||
-    (candidate.medicine !== null && typeof candidate.medicine !== "string") ||
-    (urgency !== "critical" && urgency !== "watch" && urgency !== "stable" && urgency !== "needs-review") ||
-    typeof candidate.summary !== "string"
-  ) {
-    return null;
-  }
-  return {
-    facility: candidate.facility as string | null,
-    medicine: candidate.medicine as string | null,
-    urgency,
-    summary: candidate.summary
-  };
-}
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 function fallbackResponse(message: string, status = "scaffolded") {
   return NextResponse.json({
     status,
     message,
     extracted: {
-      facility: null,
-      medicine: null,
+      facilityId: null,
+      medicineId: null,
+      quantity: null,
       urgency: "needs-review",
-      summary: "A human review is required before creating an operational decision."
-    } satisfies ExtractedReport
+      summary: "A human review is required before creating an operational decision.",
+      confidence: "low"
+    } satisfies ReportExtraction
   });
 }
 
@@ -60,8 +36,15 @@ export async function POST(request: Request) {
 
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const allowedFacilities = facilities.map((facility) => `${facility.id}: ${facility.name}`).join("\n");
+  const allowedMedicines = stock.map((item) => `${item.id}: ${item.medicine} at ${item.facilityId}`).join("\n");
   const prompt = `Extract this healthcare operations report into JSON only. Do not infer patient-identifying information.
-Schema: {"facility": string|null, "medicine": string|null, "urgency": "critical"|"watch"|"stable"|"needs-review", "summary": string}
+Schema: {"facilityId": string|null, "medicineId": string|null, "quantity": number|null, "urgency": "critical"|"watch"|"stable"|"needs-review", "summary": string, "confidence": "high"|"medium"|"low"}
+Only use IDs from these allowed lists. If the report is ambiguous, use null and "needs-review".
+Facilities:
+${allowedFacilities}
+Medicine stock lines:
+${allowedMedicines}
 Report:
 ${body.report.trim()}`;
 
@@ -88,9 +71,9 @@ ${body.report.trim()}`;
       return fallbackResponse("Gemini returned no extraction. The report is queued for human review.", "fallback");
     }
 
-    let extracted: ExtractedReport | null = null;
+    let extracted: ReportExtraction | null = null;
     try {
-      extracted = parseExtractedReport(JSON.parse(text));
+      extracted = validateReportExtraction(JSON.parse(text));
     } catch {
       extracted = null;
     }

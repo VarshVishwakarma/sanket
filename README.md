@@ -14,7 +14,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The demo uses seeded in-memory data in `lib/domain.ts`; approved transfers update the shared in-memory session state and the decision history. Persistence and authentication are intentionally outside this prototype. The report route works without a key and returns a human-review fallback. Set `GEMINI_API_KEY` in `.env.local` to make a real server-side request to Gemini; responses are schema-validated and provider failures fall back safely. The key is only read in the server route and is never exposed to the browser.
+The demo uses seeded in-memory data in `lib/domain.ts`; approved transfers update the shared in-memory session state and the decision history. Persistence and authentication are intentionally outside this prototype. The interface labels these records as synthetic demo data and uses a current-date snapshot header. The report route works without a key and returns a human-review fallback. Set `GEMINI_API_KEY` in `.env.local` to make a real server-side request to the supported `gemini-2.5-flash` model (or set `GEMINI_MODEL`); responses are schema-validated against known facility and medicine IDs, and provider failures fall back safely. The key is only read in the server route and is never exposed to the browser.
 
 ## Validation
 
@@ -35,6 +35,6 @@ npm run build
 ## Product surfaces
 
 - **Operations overview:** facility readiness, critical/watched medicines, coverage, and next best action.
-- **Response rehearsal:** select a facility, medicine, and scenario; inspect projected cover and gap; compare eligible donors with a donor safety buffer.
-- **Report intake:** submit unstructured field notes through a server-side API route scaffold.
+- **Response rehearsal:** select a facility, medicine, and scenario; inspect projected cover and gap; compare eligible donors with a donor safety buffer in an interactive SVG network; preview before/after outcomes; and approve a simulated transfer.
+- **Report intake:** load a synthetic sample or submit an unstructured field note through the server-side Gemini route, review/correct extracted IDs and quantity, then open the rehearsal with those reviewed fields.
 - **Decision history:** inspect risk recalculations, inventory syncs, rehearsal opens, and transfer approvals.

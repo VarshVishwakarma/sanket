@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return fallbackResponse(language, translate(language, "apiMissingKey"));
   }
 
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const model = DEFAULT_MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const allowedFacilities = facilities.map((facility) => `${facility.id}: ${facility.name}`).join("\n");
   const allowedMedicines = stock.map((item) => `${item.id}: ${item.medicine} at ${item.facilityId}`).join("\n");
@@ -56,7 +56,7 @@ ${body.report.trim()}`;
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json" }
+        generationConfig: { responseMimeType: "application/json" }
       }),
       cache: "no-store"
     });

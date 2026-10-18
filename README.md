@@ -14,13 +14,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The demo uses seeded in-memory data in `lib/domain.ts`. Persistence and authentication are intentionally outside this prototype. The report route works without a key and returns a deterministic scaffold response; set `GEMINI_API_KEY` in `.env.local` to enable the provider-ready path. The key is only read in the server route and is never exposed to the browser.
+The demo uses seeded in-memory data in `lib/domain.ts`; approved transfers update the shared in-memory session state and the decision history. Persistence and authentication are intentionally outside this prototype. The report route works without a key and returns a human-review fallback. Set `GEMINI_API_KEY` in `.env.local` to make a real server-side request to Gemini; responses are schema-validated and provider failures fall back safely. The key is only read in the server route and is never exposed to the browser.
 
 ## Validation
 
 ```bash
 npm run typecheck
 npm test
+npm run lint
 npm run build
 ```
 

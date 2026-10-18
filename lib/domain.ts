@@ -58,6 +58,13 @@ export interface AuditEvent {
   tone: "teal" | "amber" | "coral";
 }
 
+export interface TransferDecision {
+  sourceId: string;
+  destinationId: string;
+  quantity: number;
+  medicine: string;
+}
+
 export const facilities: Facility[] = [
   { id: "north-star", name: "North Star Medical Center", shortName: "North Star", region: "North district", beds: 420, occupancy: 0.91, contact: "Dr. Asha Menon" },
   { id: "riverbend", name: "Riverbend Community Hospital", shortName: "Riverbend", region: "East district", beds: 260, occupancy: 0.77, contact: "Nikhil Rao, COO" },
@@ -106,8 +113,9 @@ export function getFacility(facilityId: string): Facility {
   return facilities.find((facility) => facility.id === facilityId) ?? facilities[0];
 }
 
-export function selectEligibleDonors(shortage: StockRisk, demandMultiplier = 1): TransferOption[] {
-  return stock
+export function selectEligibleDonors(shortage: StockRisk, demandMultiplier = 1, items: MedicineStock[] = stock): TransferOption[] {
+  if (shortage.gap <= 0) return [];
+  return items
     .filter((item) => item.medicine === shortage.medicine && item.facilityId !== shortage.facilityId)
     .map((donorStock) => {
       const donor = getFacility(donorStock.facilityId);
@@ -135,4 +143,20 @@ export function selectEligibleDonors(shortage: StockRisk, demandMultiplier = 1):
 
 export function compareScenario(item: MedicineStock, scenario: RehearsalScenario): StockRisk {
   return calculateRisk(item, scenario.demandMultiplier, scenario.id === "delay");
+}
+
+export function applyTransfer(items: MedicineStock[], decision: TransferDecision): MedicineStock[] {
+  if (!Number.isInteger(decision.quantity) || decision.quantity <= 0) {
+    throw new Error("Transfer quantity must be a positive integer.");
+  }
+  const source = items.find((item) => item.id === decision.sourceId);
+  const destination = items.find((item) => item.id === decision.destinationId);
+  if (!source || !destination || source.medicine !== destination.medicine || source.onHand < decision.quantity) {
+    throw new Error("Transfer is not valid for the current inventory.");
+  }
+  return items.map((item) => {
+    if (item.id === decision.sourceId) return { ...item, onHand: item.onHand - decision.quantity, updatedAt: "just now" };
+    if (item.id === decision.destinationId) return { ...item, onHand: item.onHand + decision.quantity, updatedAt: "just now" };
+    return item;
+  });
 }

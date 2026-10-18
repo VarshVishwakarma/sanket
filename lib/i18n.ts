@@ -76,6 +76,13 @@ export const messages = {
     stockAcross: "Across seeded medicines",
     riskSafety: "At this pace, the safety buffer is crossed in {days} days.",
     transferDistance: "{distance} km away",
+    donorRationaleCover: "Leaves {days} days of donor cover",
+    donorRationaleBuffer: "Protected stock buffer would be breached",
+    noLiveConnection: "No live facility connection",
+    reportErrorGeneric: "Report could not be processed.",
+    approvalActor: "Asha Menon",
+    syntheticActor: "Synthetic demo",
+    justNow: "Just now",
     medicineResilience: "Medicine resilience",
     estimatedCoverage: "Estimated coverage from seeded inventory",
     rehearseResponse: "Rehearse response",
@@ -234,6 +241,13 @@ export const messages = {
     stockAcross: "सीडेड दवाओं में",
     riskSafety: "इस गति पर सुरक्षित आरक्षित भंडार {days} दिनों में पार हो जाएगा।",
     transferDistance: "{distance} किमी दूर",
+    donorRationaleCover: "दाता के पास {days} दिनों का कवर बचेगा",
+    donorRationaleBuffer: "सुरक्षित आरक्षित भंडार टूट जाएगा",
+    noLiveConnection: "कोई लाइव सुविधा कनेक्शन नहीं",
+    reportErrorGeneric: "रिपोर्ट संसाधित नहीं हो सकी।",
+    approvalActor: "आशा मेनन",
+    syntheticActor: "सिंथेटिक डेमो",
+    justNow: "अभी",
     medicineResilience: "दवा लचीलापन",
     estimatedCoverage: "सीडेड इन्वेंटरी से अनुमानित कवर",
     rehearseResponse: "प्रतिक्रिया का अभ्यास करें",
@@ -361,10 +375,22 @@ export function auditDetail(language: Language, event: { action: string; detail:
     }
     return event.detail;
   }
+
   if (language === "hi") {
     if (event.detail.includes("moved to critical")) return "नॉर्थ स्टार • वैनकोमाइसिन 500mg गंभीर जोखिम में पहुंची";
     if (event.detail.includes("Shortage response")) return "नॉर्थ स्टार मेडिकल सेंटर के लिए कमी प्रतिक्रिया";
     if (event.detail.includes("Stock updated")) return "रिवरबेंड • नॉर्मल सलाइन +300 आने वाला स्टॉक";
   }
   return event.detail;
+}
+
+export function actorLabel(language: Language, actor: string): string {
+  if (actor === "Asha Menon") return translate(language, "approvalActor");
+  if (actor === "Synthetic demo") return translate(language, "syntheticActor");
+  return actor;
+}
+
+export function timestampLabel(language: Language, timestamp: string): string {
+  if (timestamp === "Just now") return translate(language, "justNow");
+  return timestamp;
 }

@@ -1,6 +1,7 @@
 import { ArrowRight, CircleAlert, MapPin } from "lucide-react";
 import { facilities, type Facility, type TransferOption } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { translate, type Language } from "@/lib/i18n";
 
 const positions: Record<string, { x: number; y: number }> = {
   "north-star": { x: 18, y: 42 },
@@ -23,15 +24,15 @@ export default function FacilityNetwork({
   const donorIds = new Set(donors.filter((option) => option.status !== "not-eligible").map((option) => option.donor.id));
   const destinationPosition = positions[destination.id];
   return (
-    <div className="rounded-2xl border border-[#dce7e3] bg-[#f7fbf9] p-4" aria-label="Facility transfer network">
+    <div className="rounded-2xl border border-[#dce7e3] bg-[#f7fbf9] p-4" aria-label={translate(language, "facilityNetwork")}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted">{language === "hi" ? "फैसिलिटी नेटवर्क" : "Facility network"}</p>
-          <p className="mt-1 text-xs text-muted">{language === "hi" ? "चयनित दवा के लिए वास्तविक सुरक्षित विकल्प" : "Live safe options for the selected medicine"}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted">{translate(language, "facilityNetwork")}</p>
+          <p className="mt-1 text-xs text-muted">{translate(language, "networkSubtitle")}</p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wide text-muted">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-coral" /> Risk</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal" /> Donor</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-coral" /> {translate(language, "riskLegend")}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal" /> {translate(language, "donorLegend")}</span>
         </div>
       </div>
       <div className="relative aspect-[1.7] min-h-[220px] overflow-hidden rounded-xl border border-[#dce7e3] bg-white">
@@ -52,7 +53,7 @@ export default function FacilityNetwork({
             const isDestination = facility.id === destination.id;
             const isDonor = donorIds.has(facility.id);
             const isSelected = selectedDonor?.donor.id === facility.id;
-            return <g key={facility.id} role="img" aria-label={`${facility.name}${isDestination ? " at risk destination" : isDonor ? " eligible donor" : ""}`}>
+            return <g key={facility.id} role="img" aria-label={`${facility.name}${isDestination ? ` (${translate(language, "facility")})` : isDonor ? ` (${translate(language, "donorLegend")})` : ""}`}>
               <circle cx={position.x} cy={position.y} r={isDestination || isSelected ? 6.5 : 5} fill={isDestination ? "#e86f51" : isSelected ? "#0f766e" : isDonor ? "#9de2c9" : "#d8e7e2"} stroke={isDestination || isSelected ? "#ffffff" : "#9dbdb5"} strokeWidth="1.5" />
               <circle cx={position.x} cy={position.y} r="2" fill={isDestination || isSelected ? "#ffffff" : "#3b6862"} />
               {isDestination && <circle cx={position.x} cy={position.y} r="9" fill="none" stroke="#e86f51" strokeOpacity="0.25" strokeWidth="1.2" />}
@@ -63,10 +64,10 @@ export default function FacilityNetwork({
           })}
         </svg>
         <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-white/90 px-2.5 py-2 text-[11px] font-medium text-muted shadow-sm backdrop-blur">
-          {selectedDonor ? <><ArrowRight size={13} className="text-teal" /> {selectedDonor.safeTransfer} {selectedDonor.stock.unit} proposed</> : <><CircleAlert size={13} className="text-coral" /> Select a donor to preview a path</>}
+          {selectedDonor ? <><ArrowRight size={13} className="text-teal" /> {selectedDonor.safeTransfer} {selectedDonor.stock.unit} {translate(language, "proposed")}</> : <><CircleAlert size={13} className="text-coral" /> {translate(language, "selectDonor")}</>}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-muted"><MapPin size={13} /> {donors.filter((option) => option.status !== "not-eligible").length} eligible donor paths <span className="text-[#c1cfca]">•</span> no decorative connections</div>
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted"><MapPin size={13} /> {translate(language, "eligiblePaths", { count: donors.filter((option) => option.status !== "not-eligible").length })} <span className="text-[#c1cfca]">•</span> {translate(language, "noDecorativeConnections")}</div>
     </div>
   );
 }

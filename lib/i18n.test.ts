@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { messages, donorStatusLabel, riskLabel, translate } from "./i18n";
+import { auditAction, auditDetail, donorStatusLabel, messages, riskLabel, timestampLabel, translate } from "./i18n";
 
 describe("localization catalog", () => {
   it("keeps English and Hindi keys identical and non-empty", () => {
@@ -15,5 +15,9 @@ describe("localization catalog", () => {
     expect(donorStatusLabel("hi", "recommended")).toBe("अनुशंसित");
     expect(translate("hi", "eventTransferDetail", { quantity: 48, medicine: "Insulin", facility: "Riverbend" })).toContain("48");
     expect(translate("en", "eventTransferDetail", { quantity: 48, medicine: "Insulin", facility: "Riverbend" })).toContain("Riverbend");
+    expect(translate("hi", "donorRationaleCover", { days: 4 })).toContain("4");
+    expect(auditAction("hi", "Transfer approved")).toBe("ट्रांसफर स्वीकृत");
+    expect(auditDetail("hi", { action: "Risk recalculated", detail: "North Star • Vancomycin 500mg moved to critical" })).toContain("गंभीर");
+    expect(timestampLabel("hi", "Just now")).toBe("अभी");
   });
 });

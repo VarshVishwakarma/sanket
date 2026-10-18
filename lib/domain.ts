@@ -38,7 +38,8 @@ export interface TransferOption {
   safeTransfer: number;
   distanceKm: number;
   status: TransferStatus;
-  rationale: string;
+  rationale: "leaves-cover" | "buffer-breached";
+  remainingCoverDays: number;
 }
 
 export interface RehearsalScenario {
@@ -150,7 +151,8 @@ export function selectEligibleDonors(shortage: StockRisk, demandMultiplier = 1, 
         safeTransfer,
         distanceKm,
         status,
-        rationale: eligible ? `Leaves ${Math.round((availableAfterBuffer - safeTransfer) / donorStock.dailyUse)} days of donor cover` : "Protected stock buffer would be breached"
+        rationale: (eligible ? "leaves-cover" : "buffer-breached") as TransferOption["rationale"],
+        remainingCoverDays: donorStock.dailyUse > 0 ? Math.max(0, (availableAfterBuffer - safeTransfer) / donorStock.dailyUse) : 0
       };
     })
     .sort((a, b) => (a.status === "recommended" ? -1 : b.status === "recommended" ? 1 : a.distanceKm - b.distanceKm));

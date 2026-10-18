@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { facilities, stock, validateReportExtraction, type ReportExtraction } from "@/lib/domain";
 import { translate, type Language } from "@/lib/i18n";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.8-flash";
 
 function fallbackResponse(language: Language, message: string, status = "scaffolded") {
   return NextResponse.json({

@@ -14,7 +14,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The demo uses seeded in-memory data in `lib/domain.ts`; approved transfers update the shared in-memory session state and the decision history. Persistence and authentication are intentionally outside this prototype. The interface labels these records as synthetic demo data and uses a current-date snapshot header. The report route works without a key and returns a human-review fallback. Set `GEMINI_API_KEY` in `.env.local` to make a real server-side request to the supported `gemini-2.5-flash` model (or set `GEMINI_MODEL`); responses are schema-validated against known facility and medicine IDs, and provider failures fall back safely. The key is only read in the server route and is never exposed to the browser.
+The demo uses seeded in-memory data in `lib/domain.ts`; approved transfers update the shared in-memory session state and the decision history. Persistence and authentication are intentionally outside this prototype. The interface labels these records as synthetic demo data and uses a current-date snapshot header. The report route works without a key and returns a human-review fallback. Set `GEMINI_API_KEY` in `.env.local` to make a real server-side request to the supported `gemini-3.8-flash` model. The route pins this model; if a legacy `GEMINI_MODEL` variable is configured, update it to `gemini-3.8-flash` or remove it and redeploy. Responses are schema-validated against known facility and medicine IDs, and provider failures fall back safely. The key is only read in the server route and is never exposed to the browser.
 
 ## Validation
 
